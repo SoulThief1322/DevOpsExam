@@ -1,0 +1,69 @@
+name: ASP.NET MVC CI/CD (SmarterASP.NET)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-test-deploy:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build -c Release --no-restore
+
+    - name: Run tests (if any)
+      shell: pwsh
+      run: |
+        $testProjects = Get-ChildItem -Recurse -Filter "*test*.csproj"
+        if (-not $testProjects) {
+          Write-Host "No test projects found. Skipping tests."
+          exit 0
+        }
+        foreach ($proj in $testProjects) {
+          dotnet test $proj.FullName -c Release --no-build
+        }
+
+    - name: Publish
+      run: dotnet publish -c Release -o ./publish
+
+    - name: Install Web Deploy
+      if: github.event_name == 'push'
+      shell: pwsh
+      run: choco install webdeploy --no-progress -y
+
+    - name: Deploy to SmarterASP.NET (Web Deploy)
+      if: github.event_name == 'push'
+      shell: pwsh
+      env:
+        MSDEPLOY_SITE: ${{ secrets.MSDEPLOY_SITE }}
+        MSDEPLOY_SERVER: ${{ secrets.MSDEPLOY_SERVER }}
+        MSDEPLOY_USERNAME: ${{ secrets.MSDEPLOY_USERNAME }}
+        MSDEPLOY_PASSWORD: ${{ secrets.MSDEPLOY_PASSWORD }}
+      run: |
+        $msdeployPath = "C:\\Program Files\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe"
+        if (-not (Test-Path $msdeployPath)) {
+          Write-Error "msdeploy.exe not found at $msdeployPath"
+          exit 1
+        }
+
+        $computerName = "https://$env:MSDEPLOY_SERVER:8172/msdeploy.axd?site=$env:MSDEPLOY_SITE"
+
+        & $msdeployPath `
+          -verb:sync `
+          -source:contentPath="./publish" `
+          -dest:contentPath="$env:MSDEPLOY_SITE",computerName="$computerName",userName="$env:MSDEPLOY_USERNAME",password="$env:MSDEPLOY_PASSWORD",authType="Basic" `
+          -allowUntrusted
