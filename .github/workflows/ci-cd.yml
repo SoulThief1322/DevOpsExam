@@ -12,9 +12,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.200
-
-      - name: Clean
-        run: dotnet clean
           
       - name: Install dependencies
         run: dotnet restore
