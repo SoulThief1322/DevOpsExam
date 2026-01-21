@@ -69,11 +69,19 @@ jobs:
 
         $publishDir = Join-Path $PWD "publish"
         $computerName = "https://$env:MSDEPLOY_SERVER:8172/msdeploy.axd?site=$env:MSDEPLOY_SITE"
+
+        if ([string]::IsNullOrWhiteSpace($env:MSDEPLOY_SERVER) -or [string]::IsNullOrWhiteSpace($env:MSDEPLOY_SITE)) {
+          Write-Error "MSDEPLOY_SERVER or MSDEPLOY_SITE not set. Check GitHub secrets."
+          exit 1
+        }
+
         Write-Host "Deploying from $publishDir to $computerName"
 
         & $msdeployPath `
           -verb:sync `
-          -source:contentPath="$publishDir" `
-          -dest:contentPath="$env:MSDEPLOY_SITE",computerName="$computerName",userName="$env:MSDEPLOY_USERNAME",password="$env:MSDEPLOY_PASSWORD",authType="Basic" `
+          -source:contentPath:"$publishDir" `
+          -dest:contentPath:"$($env:MSDEPLOY_SITE)",computerName="${computerName}",userName:"$($env:MSDEPLOY_USERNAME)",password:"$($env:MSDEPLOY_PASSWORD)",authType:Basic `
           -allowUntrusted `
+          -retryAttempts:2 `
+          -retryInterval:5000 `
           -verbose
