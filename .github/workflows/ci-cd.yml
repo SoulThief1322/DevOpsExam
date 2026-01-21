@@ -1,88 +1,38 @@
-name: ASP.NET MVC CI/CD
+name: Build, publish and deploy project to Simply
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-  workflow_dispatch:
+on: [push]
 
 jobs:
-  build-test-deploy:
+  build_and_deploy:
     runs-on: windows-latest
-
     steps:
-    - name: Checkout source
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 9.0.200
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.200
 
-    - name: Restore dependencies
-      run: dotnet restore
+      - name: Clean
+        run: dotnet clean
+          
+      - name: Install dependencies
+        run: dotnet restore
+        
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
 
-    - name: Build (Release)
-      run: dotnet build --configuration Release --no-restore
+      - name: Test with .NET
+        run: dotnet test --configuration Release --no-build
 
-    - name: Test
-      run: dotnet test --configuration Release --no-build
+      - name: Publish
+        run: dotnet publish --configuration Release --no-build -o ./publish
 
-    - name: Publish (Release)
-      run: dotnet publish --configuration Release --no-build
-
-    - name: Upload publish artifact (for diagnostics)
-      uses: actions/upload-artifact@v4
-      with:
-        name: publish-output
-        path: '.\\bin\\Release\\net9.0\\publish\\'
-
-    - name: Deploy to Simply
-      uses: talunzhang/auto-web-deploy@v1.0.1
-      with:
-        website-name: soulthief-001-site1
-        server-computer-name: https://win9079.site4now.net:8172
-        server-username: soulthief-001
-        server-password: Sofia270307@
-        destinaion-path: 'h:\root\home\soulthief-001\www\site1\'
-        source-path: '.\\bin\\Release\\net9.0\\publish\\'
-
-    - name: Install Web Deploy
-      if: github.event_name == 'push'
-      shell: pwsh
-      run: choco install webdeploy --no-progress -y
-
-    - name: Deploy to SmarterASP.NET (Web Deploy)
-      if: github.event_name == 'push'
-      shell: pwsh
-      env:
-        MSDEPLOY_SITE: soulthief-001-site1
-        MSDEPLOY_SERVER: win9079.site4now.net
-        MSDEPLOY_USERNAME: soulthief-001
-        MSDEPLOY_PASSWORD: Sofia270307@
-      run: |
-        $msdeployPath = "C:\\Program Files\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe"
-        if (-not (Test-Path $msdeployPath)) {
-          Write-Error "msdeploy.exe not found at $msdeployPath"
-          exit 1
-        }
-
-        $publishDir = Join-Path $PWD "bin/Release/net9.0/publish"
-        $computerName = "https://$env:MSDEPLOY_SERVER:8172/msdeploy.axd?site=$env:MSDEPLOY_SITE"
-
-        if ([string]::IsNullOrWhiteSpace($env:MSDEPLOY_SERVER) -or [string]::IsNullOrWhiteSpace($env:MSDEPLOY_SITE)) {
-          Write-Error "MSDEPLOY_SERVER or MSDEPLOY_SITE not set. Check GitHub secrets."
-          exit 1
-        }
-
-        Write-Host "Deploying from $publishDir to $computerName"
-
-        & $msdeployPath `
-          -verb:sync `
-          -source:contentPath:"$publishDir" `
-          -dest:contentPath:"$($env:MSDEPLOY_SITE)",computerName="${computerName}",userName:"$($env:MSDEPLOY_USERNAME)",password:"$($env:MSDEPLOY_PASSWORD)",authType:Basic `
-          -allowUntrusted `
-          -retryAttempts:2 `
-          -retryInterval:5000 `
-          -verbose
+      - name: Deploy to Simply        
+        uses: talunzhang/auto-web-deploy@v1.0.1
+        with:
+          website-name: soulthief-001-site1
+          server-computer-name: https://win9079.site4now.net:8172
+          server-username: soulthief-001
+          server-password: Sofia270307@
+          source-path: './publish'
