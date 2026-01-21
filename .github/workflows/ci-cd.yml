@@ -1,4 +1,4 @@
-name: ASP.NET MVC CI/CD (SmarterASP.NET)
+name: ASP.NET MVC CI/CD
 
 on:
   push:
@@ -67,10 +67,13 @@ jobs:
           exit 1
         }
 
+        $publishDir = Join-Path $PWD "publish"
         $computerName = "https://$env:MSDEPLOY_SERVER:8172/msdeploy.axd?site=$env:MSDEPLOY_SITE"
+        Write-Host "Deploying from $publishDir to $computerName"
 
         & $msdeployPath `
           -verb:sync `
-          -source:contentPath="./publish" `
+          -source:contentPath="$publishDir" `
           -dest:contentPath="$env:MSDEPLOY_SITE",computerName="$computerName",userName="$env:MSDEPLOY_USERNAME",password="$env:MSDEPLOY_PASSWORD",authType="Basic" `
-          -allowUntrusted
+          -allowUntrusted `
+          -verbose
