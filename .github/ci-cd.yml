@@ -5,6 +5,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build-test-deploy:
@@ -25,7 +26,7 @@ jobs:
     - name: Build
       run: dotnet build -c Release --no-restore
 
-    - name: Run tests (if any)
+    - name: Run tests
       shell: pwsh
       run: |
         $testProjects = Get-ChildItem -Recurse -Filter "*test*.csproj"
@@ -38,7 +39,13 @@ jobs:
         }
 
     - name: Publish
-      run: dotnet publish -c Release -o ./publish
+      run: dotnet publish -c Release --no-build -o ./publish
+
+    - name: Upload publish artifact (for diagnostics)
+      uses: actions/upload-artifact@v4
+      with:
+        name: publish-output
+        path: ./publish
 
     - name: Install Web Deploy
       if: github.event_name == 'push'
@@ -60,7 +67,7 @@ jobs:
           exit 1
         }
 
-        $computerName = "https://$env:MSDEPLOY_SERVER:8172/msdeploy.axd?site=$env:MSDEPLOY_SITE"
+        $computerName = "	https://win9079.site4now.net:8172/MsDeploy.axd?site=soulthief-001-site1"
 
         & $msdeployPath `
           -verb:sync `
