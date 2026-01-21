@@ -67,7 +67,7 @@ jobs:
           exit 1
         }
 
-        $computerName = "	https://win9079.site4now.net:8172/MsDeploy.axd?site=soulthief-001-site1"
+        $computerName = "https://$env:MSDEPLOY_SERVER:8172/msdeploy.axd?site=$env:MSDEPLOY_SITE"
 
         & $msdeployPath `
           -verb:sync `
