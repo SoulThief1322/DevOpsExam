@@ -46,6 +46,7 @@ jobs:
         server-username: soulthief-001
         server-password: Sofia270307@
         destinaion-path: 'h:\root\home\soulthief-001\www\site1\'
+        source-path: '.\\bin\\Release\\net9.0\\publish\\'
 
     - name: Install Web Deploy
       if: github.event_name == 'push'
@@ -67,7 +68,7 @@ jobs:
           exit 1
         }
 
-        $publishDir = Join-Path $PWD "publish"
+        $publishDir = Join-Path $PWD "bin/Release/net9.0/publish"
         $computerName = "https://$env:MSDEPLOY_SERVER:8172/msdeploy.axd?site=$env:MSDEPLOY_SITE"
 
         if ([string]::IsNullOrWhiteSpace($env:MSDEPLOY_SERVER) -or [string]::IsNullOrWhiteSpace($env:MSDEPLOY_SITE)) {
