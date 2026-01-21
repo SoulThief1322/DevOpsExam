@@ -36,6 +36,8 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: publish-output
+        path: '.\\bin\\Release\\net9.0\\publish\\'
+
     - name: Deploy to Simply
       uses: talunzhang/auto-web-deploy@v1.0.1
       with:
