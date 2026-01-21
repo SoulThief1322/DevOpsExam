@@ -18,34 +18,34 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0.200'
+        dotnet-version: 9.0.200
 
     - name: Restore dependencies
       run: dotnet restore
 
-    - name: Build
-      run: dotnet build -c Release --no-restore
+    - name: Build (Release)
+      run: dotnet build --configuration Release --no-restore
 
-    - name: Run tests
-      shell: pwsh
-      run: |
-        $testProjects = Get-ChildItem -Recurse -Filter "*test*.csproj"
-        if (-not $testProjects) {
-          Write-Host "No test projects found. Skipping tests."
-          exit 0
-        }
-        foreach ($proj in $testProjects) {
-          dotnet test $proj.FullName -c Release --no-build
-        }
+    - name: Test
+      run: dotnet test --configuration Release --no-build
 
-    - name: Publish
-      run: dotnet publish -c Release --no-build -o ./publish
+    - name: Publish (Release)
+      run: dotnet publish --configuration Release --no-build
 
     - name: Upload publish artifact (for diagnostics)
       uses: actions/upload-artifact@v4
       with:
         name: publish-output
-        path: ./publish
+        path: '.\\bin\\Release\\net9.0\\publish\\'
+
+    - name: Deploy to Simply
+      uses: talunzhang/auto-web-deploy@v1.0.1
+      with:
+        website-name: soulthief-001-site1
+        server-computer-name: https://win9079.site4now.net:8172
+        server-username: soulthief-001
+        server-password: Sofia270307@
+        source-path: '.\\bin\\Release\\net9.0\\publish\\'
 
     - name: Install Web Deploy
       if: github.event_name == 'push'
@@ -56,10 +56,10 @@ jobs:
       if: github.event_name == 'push'
       shell: pwsh
       env:
-        MSDEPLOY_SITE: ${{ secrets.MSDEPLOY_SITE }}
-        MSDEPLOY_SERVER: ${{ secrets.MSDEPLOY_SERVER }}
-        MSDEPLOY_USERNAME: ${{ secrets.MSDEPLOY_USERNAME }}
-        MSDEPLOY_PASSWORD: ${{ secrets.MSDEPLOY_PASSWORD }}
+        MSDEPLOY_SITE: soulthief-001-site1
+        MSDEPLOY_SERVER: win9079.site4now.net
+        MSDEPLOY_USERNAME: soulthief-001
+        MSDEPLOY_PASSWORD: Sofia270307@
       run: |
         $msdeployPath = "C:\\Program Files\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe"
         if (-not (Test-Path $msdeployPath)) {
